@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#090d16" />
+  <meta name="description" content="An interactive historical astronomy experience exploring the Ptolemaic geocentric cosmos." />
+  <title>Ptolemaic Observatory — The Geocentric Cosmos</title>
+  <style>
+    :root {
+      --bg: #070b12;
+      --bg2: #0b111c;
+      --panel: rgba(17, 25, 39, 0.88);
+      --panel-2: rgba(23, 33, 50, 0.88);
+      --text: #edf2f7;
+      --muted: #9aa9ba;
+      --faint: #627184;
+      --line: rgba(177, 194, 214, 0.18);
+      --gold: #d8b56a;
+      --gold2: #f1d795;
+      --terracotta: #c97956;
+      --blue: #7aa6c8;
+      --violet: #9886bf;
+      --sage: #83a98c;
+      --danger: #d47b6c;
+      --shadow: 0 24px 80px rgba(0,0,0,.32);
+      --radius: 22px;
+      --max: 1240px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 50% -20%, rgba(90, 113, 146, .23), transparent 36%),
+        radial-gradient(circle at 90% 18%, rgba(124, 91, 141, .12), transparent 25%),
+        var(--bg);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+      overflow-x: hidden;
+    }
+
+    a { color: var(--gold2); }
+    button, select, input { font: inherit; }
+    button { color: inherit; }
+    .wrap { width: min(calc(100% - 32px), var(--max)); margin-inline: auto; }
+    .eyebrow { font-size: .75rem; letter-spacing: .17em; text-transform: uppercase; color: var(--gold2); font-weight: 800; }
+    .muted { color: var(--muted); }
+    .tiny { font-size: .78rem; }
+    .serif { font-family: Georgia, 'Times New Roman', serif; }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      border-bottom: 1px solid var(--line);
+      background: rgba(7, 11, 18, .84);
+      backdrop-filter: blur(18px);
+    }
+    .topbar-inner {
+      min-height: 68px;
+      display: flex;
+      gap: 18px;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+    .brand-mark {
+      width: 39px; height: 39px; border-radius: 50%; border: 1px solid rgba(241,215,149,.5);
+      display: grid; place-items: center; position: relative; flex: 0 0 auto;
+    }
+    .brand-mark::before { content:""; width: 7px; height: 7px; border-radius: 50%; background: var(--gold2); box-shadow: 0 0 15px rgba(241,215,149,.65); }
+    .brand-mark::after { content:""; position:absolute; inset:6px; border:1px solid rgba(241,215,149,.25); border-radius:50%; transform: rotate(-25deg) scaleY(.45); }
+    .brand-title { font-weight: 800; letter-spacing: -.02em; white-space: nowrap; }
+    .brand-sub { color: var(--muted); font-size: .76rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .nav { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-block: 8px; }
+    .nav::-webkit-scrollbar { display: none; }
+    .nav a {
+      text-decoration: none; color: var(--muted); font-weight: 700; font-size: .83rem;
+      padding: 9px 11px; border-radius: 999px; white-space: nowrap;
+    }
+    .nav a:hover, .nav a:focus-visible { color: var(--text); background: rgba(255,255,255,.05); outline: none; }
+
+    .hero { padding: 66px 0 38px; }
+    .hero-grid { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(420px, .95fr); gap: 40px; align-items: center; }
+    .hero h1 { font-family: Georgia, 'Times New Roman', serif; font-size: clamp(3.1rem, 7vw, 6.8rem); line-height: .93; letter-spacing: -.055em; margin: 16px 0 24px; font-weight: 500; }
+    .hero h1 span { color: var(--gold2); }
+    .hero-copy { color: #b7c2cf; font-size: clamp(1.06rem, 2vw, 1.28rem); max-width: 720px; }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 28px; }
+    .btn {
+      min-height: 44px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--text);
+      padding: 11px 17px; font-weight: 800; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn.primary { background: var(--gold); color: #111217; border-color: var(--gold); }
+    .btn:hover { transform: translateY(-1px); }
+    .hero-note { margin-top: 20px; display: flex; gap: 10px; color: var(--muted); font-size: .84rem; max-width: 690px; }
+    .hero-note::before { content:"ⓘ"; color: var(--gold2); }
+
+    .cosmos-shell {
+      border: 1px solid var(--line); border-radius: 28px; background: linear-gradient(180deg, rgba(17,25,39,.8), rgba(10,15,24,.88));
+      box-shadow: var(--shadow); padding: 14px; position: relative; overflow: hidden;
+    }
+    .cosmos-shell::before { content:""; position:absolute; inset:-35% -20% auto; height:55%; background: radial-gradient(ellipse, rgba(216,181,106,.12), transparent 68%); pointer-events:none; }
+    #heroCosmos { width: 100%; height: auto; display:block; border-radius: 20px; background: #070b12; }
+    .cosmos-caption { display:flex; justify-content:space-between; gap:12px; padding:12px 6px 2px; font-size:.8rem; color:var(--muted); }
+
+    section { scroll-margin-top: 82px; }
+    .section { padding: 72px 0; }
+    .section-head { max-width: 820px; margin-bottom: 28px; }
+    .section h2 { font-family: Georgia, 'Times New Roman', serif; font-size: clamp(2.2rem, 4vw, 4rem); line-height: 1.05; letter-spacing: -.035em; margin: 8px 0 14px; font-weight: 500; }
+    .section-lead { color: var(--muted); font-size: 1.06rem; }
+
+    .panel { border: 1px solid var(--line); background: var(--panel); border-radius: var(--radius); box-shadow: 0 14px 50px rgba(0,0,0,.18); }
+    .sim-grid { display:grid; grid-template-columns: minmax(0,1.45fr) minmax(300px,.7fr); gap:18px; align-items:start; }
+    .sim-stage { padding: 16px; }
+    .sim-stage-top { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:12px; }
+    .sim-stage-title { font-size:1.06rem; font-weight:800; }
+    .badge { border:1px solid var(--line); border-radius:999px; padding:6px 10px; color:var(--muted); font-size:.78rem; font-weight:800; white-space:nowrap; }
+    .badge.retro { border-color: rgba(212,123,108,.48); color:#efb3a8; background:rgba(212,123,108,.08); }
+    #modelSvg { width:100%; height:auto; display:block; border:1px solid var(--line); border-radius:18px; background:#080d15; }
+    .sim-controls { margin-top:14px; display:grid; grid-template-columns:minmax(180px,1fr) auto; gap:12px; align-items:end; }
+    .range-wrap label { display:flex; justify-content:space-between; gap:10px; color:var(--muted); font-size:.8rem; margin-bottom:6px; }
+    input[type="range"] { width:100%; accent-color:var(--gold); }
+    .control-buttons { display:flex; gap:8px; flex-wrap:wrap; }
+    .control-btn { min-height:42px; border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.025); padding:9px 12px; cursor:pointer; font-weight:800; }
+    .control-btn.active { background: rgba(216,181,106,.15); border-color: rgba(216,181,106,.42); color:var(--gold2); }
+
+    .side-stack { display:grid; gap:16px; }
+    .side-card { padding:18px; }
+    .field-label { display:block; font-size:.72rem; font-weight:800; letter-spacing:.13em; text-transform:uppercase; color:var(--muted); margin-bottom:7px; }
+    select { width:100%; min-height:44px; padding:0 12px; border-radius:12px; border:1px solid var(--line); color:var(--text); background:#101827; }
+    select option { background:#101827; }
+    .segmented { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; }
+    .segmented button { min-height:42px; border-radius:11px; border:1px solid var(--line); background:transparent; color:var(--muted); font-size:.78rem; font-weight:800; cursor:pointer; }
+    .segmented button.active { background:rgba(216,181,106,.13); border-color:rgba(216,181,106,.4); color:var(--gold2); }
+    .switch-row { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:10px 0; border-top:1px solid var(--line); font-size:.9rem; }
+    .switch-row:first-of-type { border-top:0; }
+    .switch-row input { accent-color:var(--gold); width:18px; height:18px; }
+    .metrics { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .metric { padding:12px; border:1px solid var(--line); border-radius:14px; background:rgba(255,255,255,.018); }
+    .metric small { color:var(--muted); display:block; font-size:.72rem; }
+    .metric strong { display:block; margin-top:2px; font-size:1.14rem; }
+    .zodiac-readout { margin-top:10px; border-radius:12px; padding:10px 12px; background:rgba(216,181,106,.08); color:var(--gold2); font-weight:800; }
+
+    .lesson-grid { margin-top:20px; display:grid; grid-template-columns:300px minmax(0,1fr); gap:16px; }
+    .lesson-nav { padding:12px; }
+    .lesson-nav button { width:100%; text-align:left; padding:12px 13px; margin:3px 0; border:0; border-radius:12px; background:transparent; color:var(--muted); cursor:pointer; font-weight:750; }
+    .lesson-nav button.active { background:rgba(216,181,106,.11); color:var(--gold2); }
+    .lesson-content { padding:24px; min-height:210px; }
+    .lesson-content h3 { margin:0 0 8px; font-size:1.42rem; }
+    .lesson-content p { color:var(--muted); }
+    .lesson-content .callout { border-left:2px solid var(--gold); padding-left:14px; margin-top:18px; color:#c9d2dc; }
+
+    .retro-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,.8fr); gap:18px; }
+    .sky-panel, .chart-panel { padding:18px; }
+    #skyStrip, #longitudeChart { width:100%; height:auto; display:block; border-radius:16px; background:#080d15; border:1px solid var(--line); }
+    .legend { display:flex; flex-wrap:wrap; gap:12px; margin-top:10px; color:var(--muted); font-size:.78rem; }
+    .legend span { display:inline-flex; align-items:center; gap:6px; }
+    .dot { width:8px; height:8px; border-radius:50%; display:inline-block; }
+    .retro-copy { margin-top:14px; color:var(--muted); }
+
+    .sphere-layout { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(260px,.6fr); gap:18px; align-items:stretch; }
+    .sphere-visual { padding:18px; overflow:hidden; }
+    #sphereSvg { width:100%; height:auto; display:block; min-height:480px; }
+    .sphere-info { padding:24px; display:flex; flex-direction:column; justify-content:center; }
+    .sphere-info h3 { font-family:Georgia,'Times New Roman',serif; font-size:2rem; font-weight:500; margin:8px 0; }
+
+    .planet-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-top:18px; }
+    .planet-card { border:1px solid var(--line); border-radius:18px; background:var(--panel); padding:16px; cursor:pointer; min-width:0; text-align:left; color:inherit; }
+    .planet-card:hover, .planet-card.active { border-color:rgba(216,181,106,.45); background:rgba(216,181,106,.07); }
+    .planet-glyph { font-family:Georgia,'Times New Roman',serif; color:var(--gold2); font-size:1.8rem; }
+    .planet-card strong { display:block; margin-top:5px; }
+    .planet-card span { display:block; color:var(--muted); font-size:.77rem; margin-top:3px; }
+    .planet-detail { margin-top:14px; padding:22px; }
+    .planet-detail-grid { display:grid; grid-template-columns:.7fr 1.3fr; gap:24px; }
+    .planet-detail h3 { font-family:Georgia,'Times New Roman',serif; font-weight:500; font-size:2.2rem; margin:4px 0 10px; }
+    .fact-list { display:grid; gap:8px; }
+    .fact-list div { display:flex; justify-content:space-between; gap:18px; border-bottom:1px solid var(--line); padding:8px 0; font-size:.88rem; }
+    .fact-list span { color:var(--muted); }
+
+    .timeline { position:relative; margin-top:26px; }
+    .timeline::before { content:""; position:absolute; left:15px; top:8px; bottom:8px; width:1px; background:linear-gradient(var(--gold), rgba(216,181,106,.05)); }
+    .time-item { position:relative; padding:0 0 28px 52px; }
+    .time-dot { position:absolute; left:7px; top:4px; width:17px; height:17px; border-radius:50%; background:var(--bg); border:3px solid var(--gold); box-shadow:0 0 0 6px rgba(216,181,106,.07); }
+    .time-date { color:var(--gold2); font-weight:850; font-size:.82rem; letter-spacing:.04em; }
+    .time-item h3 { margin:4px 0 4px; font-size:1.08rem; }
+    .time-item p { color:var(--muted); margin:0; max-width:850px; }
+
+    .comparison { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+    .compare-card { padding:24px; }
+    .compare-card h3 { font-family:Georgia,'Times New Roman',serif; font-size:1.8rem; font-weight:500; margin:3px 0 10px; }
+    .compare-list { margin:16px 0 0; padding:0; list-style:none; }
+    .compare-list li { padding:9px 0 9px 24px; border-top:1px solid var(--line); color:var(--muted); position:relative; }
+    .compare-list li::before { content:"•"; position:absolute; left:6px; color:var(--gold); }
+
+    .glossary-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+    .term { padding:18px; }
+    .term strong { color:var(--gold2); display:block; margin-bottom:4px; }
+    .term p { color:var(--muted); margin:0; font-size:.9rem; }
+
+    .sources { padding:20px; }
+    .sources ol { margin:10px 0 0; padding-left:22px; color:var(--muted); }
+    .sources li { margin:9px 0; }
+    footer { padding:30px 0 50px; color:var(--muted); font-size:.82rem; }
+    .footer-grid { display:flex; justify-content:space-between; gap:20px; align-items:center; border-top:1px solid var(--line); padding-top:24px; }
+
+    .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(12px); background:#172131; color:var(--text); border:1px solid var(--line); border-radius:999px; padding:10px 14px; opacity:0; pointer-events:none; transition:.22s; z-index:100; font-size:.85rem; }
+    .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+    @media (max-width: 980px) {
+      .hero-grid, .sim-grid, .retro-grid, .sphere-layout { grid-template-columns:1fr; }
+      .hero { padding-top:46px; }
+      .cosmos-shell { max-width:720px; margin-inline:auto; }
+      .lesson-grid { grid-template-columns:1fr; }
+      .lesson-nav { display:flex; overflow-x:auto; }
+      .lesson-nav button { width:auto; white-space:nowrap; }
+      .planet-grid { grid-template-columns:repeat(3,1fr); }
+      .planet-detail-grid { grid-template-columns:1fr; }
+      .glossary-grid { grid-template-columns:repeat(2,1fr); }
+    }
+    @media (max-width: 720px) {
+      .topbar-inner { display:block; padding-top:10px; }
+      .brand-sub { max-width:230px; }
+      .hero h1 { font-size:clamp(3rem,16vw,5rem); }
+      .hero-grid { gap:26px; }
+      .sim-controls { grid-template-columns:1fr; }
+      .planet-grid { grid-template-columns:repeat(2,1fr); }
+      .comparison, .glossary-grid { grid-template-columns:1fr; }
+      .sphere-visual { padding:4px; }
+      .footer-grid { display:block; }
+    }
+    @media (max-width: 420px) {
+      .wrap { width:min(calc(100% - 20px), var(--max)); }
+      .hero-actions .btn { width:100%; justify-content:center; }
+      .metrics { grid-template-columns:1fr; }
+      .segmented { grid-template-columns:1fr; }
+      .planet-grid { grid-template-columns:1fr; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior:auto; }
+      *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"></div>
+        <div>
+          <div class="brand-title">Ptolemaic Observatory</div>
+          <div class="brand-sub">An interactive reconstruction of the geocentric cosmos</div>
+        </div>
+      </div>
+      <nav class="nav" aria-label="Primary navigation">
+        <a href="#simulator">Simulator</a>
+        <a href="#retrograde">Retrograde</a>
+        <a href="#spheres">Spheres</a>
+        <a href="#planets">Planets</a>
+        <a href="#history">History</a>
+        <a href="#glossary">Glossary</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap hero-grid">
+        <div>
+          <div class="eyebrow">Claudius Ptolemy · Alexandria · 2nd century CE</div>
+          <h1>The universe<br/>with <span>Earth at rest.</span></h1>
+          <p class="hero-copy">Enter the most sophisticated geocentric astronomy of antiquity. Build a planetary model from circles, watch retrograde motion emerge, explore the equant, and see why Ptolemy’s mathematical system remained foundational for more than a millennium.</p>
+          <div class="hero-actions">
+            <a class="btn primary" href="#simulator">Open the simulator →</a>
+            <a class="btn" href="#history">Follow the history</a>
+          </div>
+          <div class="hero-note">This is a faithful conceptual reconstruction. Visual radii, speeds, and offsets are normalized for teaching clarity unless explicitly labeled historical parameters; it is not an ephemeris calculator.</div>
+        </div>
+        <div class="cosmos-shell">
+          <svg id="heroCosmos" viewBox="0 0 720 720" role="img" aria-label="Animated geocentric cosmos with nested planetary spheres"></svg>
+          <div class="cosmos-caption"><span>Traditional Ptolemaic order</span><span>Earth · Moon · Mercury · Venus · Sun · Mars · Jupiter · Saturn · Fixed stars</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="simulator" class="section">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="eyebrow">Interactive model</div>
+          <h2>Build the machinery of the heavens.</h2>
+          <p class="section-lead">Ptolemaic astronomy was not merely “planets go around Earth.” The mature planetary model combines a deferent, an epicycle, an eccentric displacement of Earth, and an equant from which the epicycle center advances at a uniform angular rate.</p>
+        </div>
+
+        <div class="sim-grid">
+          <div class="panel sim-stage">
+            <div class="sim-stage-top">
+              <div><div class="eyebrow">Planetary longitude model</div><div id="stageTitle" class="sim-stage-title">Mars — full teaching model</div></div>
+              <div id="motionBadge" class="badge">Direct motion →</div>
+            </div>
+            <svg id="modelSvg" viewBox="0 0 760 640" role="img" aria-label="Interactive Ptolemaic deferent and epicycle model"></svg>
+            <div class="sim-controls">
+              <div class="range-wrap">
+                <label for="timeSlider"><span>Model time</span><strong id="timeReadout">0.00 years</strong></label>
+                <input id="timeSlider" type="range" min="0" max="1000" value="0" aria-label="Model time" />
+              </div>
+              <div class="control-buttons">
+                <button id="playButton" class="control-btn active" type="button">Pause</button>
+                <button id="resetButton" class="control-btn" type="button">Reset</button>
+                <button id="stepRetroButton" class="control-btn" type="button">Find retrograde</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="side-stack">
+            <div class="panel side-card">
+              <label class="field-label" for="planetSelect">Planet</label>
+              <select id="planetSelect">
+                <option value="mars">Mars</option>
+                <option value="jupiter">Jupiter</option>
+                <option value="saturn">Saturn</option>
+                <option value="venus">Venus</option>
+                <option value="mercury">Mercury</option>
+              </select>
+              <div style="height:14px"></div>
+              <div class="field-label">Model layers</div>
+              <div class="segmented" role="group" aria-label="Model complexity">
+                <button type="button" data-mode="deferent">Deferent</button>
+                <button type="button" data-mode="epicycle">+ Epicycle</button>
+                <button type="button" data-mode="full" class="active">Full model</button>
+              </div>
+              <div style="height:12px"></div>
+              <label class="switch-row"><span>Show geometry labels</span><input id="labelsToggle" type="checkbox" checked /></label>
+              <label class="switch-row"><span>Show planet trail</span><input id="trailToggle" type="checkbox" checked /></label>
+              <label class="switch-row"><span>Show Earth sightline</span><input id="sightToggle" type="checkbox" checked /></label>
+            </div>
+
+            <div class="panel side-card">
+              <div class="field-label">What an observer on Earth sees</div>
+              <div class="metrics">
+                <div class="metric"><small>Apparent longitude</small><strong id="longitudeReadout">0.0°</strong></div>
+                <div class="metric"><small>Apparent motion</small><strong id="motionReadout">Direct</strong></div>
+              </div>
+              <div id="zodiacReadout" class="zodiac-readout">♈ Aries</div>
+              <p class="muted tiny">Retrograde motion is detected from the changing <em>geocentric line of sight</em>, not from the planet literally stopping on its epicycle.</p>
+            </div>
+
+            <div class="panel side-card">
+              <div class="field-label">Scholar note</div>
+              <p id="scholarNote" class="muted tiny" style="margin:0">The outer-planet teaching model preserves the key Ptolemaic geometry: Earth is eccentric to the deferent, and the center of the epicycle moves uniformly in angle as viewed from the equant. Sizes and periods are normalized for legibility.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="lesson-grid">
+          <div class="panel lesson-nav" id="lessonNav">
+            <button type="button" data-lesson="0" class="active">1 · Start with Earth</button>
+            <button type="button" data-lesson="1">2 · Add a deferent</button>
+            <button type="button" data-lesson="2">3 · Add the epicycle</button>
+            <button type="button" data-lesson="3">4 · Offset Earth</button>
+            <button type="button" data-lesson="4">5 · Add the equant</button>
+            <button type="button" data-lesson="5">6 · Observe retrograde</button>
+          </div>
+          <div class="panel lesson-content">
+            <div class="eyebrow">Guided reconstruction</div>
+            <h3 id="lessonTitle">Earth appears stationary</h3>
+            <p id="lessonText">Begin from the observer’s experience. The ground does not seem to move, while the Sun, Moon, stars, and planets rise and set around us. An Earth-centered coordinate system is therefore an entirely natural starting point for naked-eye astronomy.</p>
+            <div id="lessonCallout" class="callout"><strong>Historical insight:</strong> Geocentrism was not born from stupidity. It was a coordinate framework grounded in ordinary observation and embedded in the physical philosophy available to ancient astronomers.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="retrograde" class="section">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="eyebrow">The famous puzzle</div>
+          <h2>How circles create backward motion.</h2>
+          <p class="section-lead">Against the fixed stars, Mars, Jupiter, and Saturn periodically slow, stop, drift westward, stop again, and resume their usual eastward motion. The epicycle turns that apparent reversal into geometry.</p>
+        </div>
+        <div class="retro-grid">
+          <div class="panel sky-panel">
+            <div class="field-label">Simulated naked-eye sky strip</div>
+            <svg id="skyStrip" viewBox="0 0 760 330" role="img" aria-label="Sky strip showing a planet tracing a retrograde loop among stars"></svg>
+            <div class="legend"><span><i class="dot" style="background:var(--terracotta)"></i>planet</span><span><i class="dot" style="background:var(--gold2)"></i>current position</span><span><i class="dot" style="background:#92a1b2"></i>fixed stars</span></div>
+          </div>
+          <div class="panel chart-panel">
+            <div class="field-label">Apparent longitude through time</div>
+            <svg id="longitudeChart" viewBox="0 0 620 330" role="img" aria-label="Graph of apparent planetary longitude showing a retrograde interval"></svg>
+            <p class="retro-copy">On the chart, the normal eastward trend is interrupted by a segment with the opposite slope. That interval is retrograde. Ptolemy’s construction generated this without abandoning circular motions.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="spheres" class="section">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="eyebrow">Cosmic architecture</div>
+          <h2>The traditional order of the spheres.</h2>
+          <p class="section-lead">In the familiar medievalized Ptolemaic cosmos, Earth rests at the center. The wandering lights occupy nested regions, beyond which lies the sphere of the fixed stars. Click a sphere to inspect its role.</p>
+        </div>
+        <div class="sphere-layout">
+          <div class="panel sphere-visual"><svg id="sphereSvg" viewBox="0 0 760 620" role="img" aria-label="Nested diagram of the traditional Ptolemaic celestial spheres"></svg></div>
+          <div class="panel sphere-info">
+            <div id="sphereEyebrow" class="eyebrow">Center</div>
+            <h3 id="sphereName">Earth</h3>
+            <p id="sphereText" class="muted">The unmoving reference point of the geocentric cosmos. In Aristotelian natural philosophy, heavy terrestrial matter naturally seeks the center of the universe.</p>
+            <div id="sphereIndex" class="zodiac-readout">0 · Central body</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="planets" class="section">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="eyebrow">Five wandering stars</div>
+          <h2>Not every planet uses the geometry in quite the same way.</h2>
+          <p class="section-lead">The outer planets and the inferior planets share the vocabulary of deferents, epicycles, eccentrics, and equants, but their geometrical constraints differ because Venus and Mercury never stray far from the Sun.</p>
+        </div>
+        <div class="planet-grid" id="planetCards"></div>
+        <div class="panel planet-detail">
+          <div class="planet-detail-grid">
+            <div>
+              <div id="detailType" class="eyebrow">Outer planet</div>
+              <h3 id="detailName">Mars</h3>
+              <div class="fact-list">
+                <div><span>Traditional sphere</span><strong id="detailSphere">5th above Earth</strong></div>
+                <div><span>Key phenomenon</span><strong id="detailPhenomenon">Retrograde at opposition</strong></div>
+                <div><span>Model emphasis</span><strong id="detailDevice">Epicycle + equant</strong></div>
+              </div>
+            </div>
+            <div>
+              <p id="detailText" class="muted" style="margin-top:0">For an outer planet such as Mars, the epicycle accounts for the planet’s relation to the Sun and produces its conspicuous retrograde loops. Ptolemy then used eccentricity and the equant to represent the varying speed of the epicycle center along the deferent.</p>
+              <p id="detailExtra" class="muted">In the mature Ptolemaic longitude model, the Earth, deferent center, and equant lie on the line of apsides. The equant sits opposite Earth with respect to the deferent center.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="history" class="section">
+      <div class="wrap">
+        <div class="section-head">
+          <div class="eyebrow">A long scientific tradition</div>
+          <h2>Ptolemy was a culmination, not a beginning.</h2>
+          <p class="section-lead">The geocentric mathematical tradition developed over centuries, was refined and criticized across cultures, and continued to shape technical astronomy even as heliocentrism emerged.</p>
+        </div>
+        <div class="panel" style="padding:26px">
+          <div class="timeline">
+            <article class="time-item"><span class="time-dot"></span><div class="time-date">4th century BCE</div><h3>Eudoxus and homocentric spheres</h3><p>Greek astronomers sought combinations of uniform circular motions capable of reproducing the complicated wanderings of the planets while keeping Earth at the center.</p></article>
+            <article class="time-item"><span class="time-dot"></span><div class="time-date">3rd–2nd centuries BCE</div><h3>Apollonius, Hipparchus, and geometrical astronomy</h3><p>Eccentric circles and epicyclic constructions became powerful mathematical tools. Hipparchus developed quantitative solar and lunar models that strongly influenced Ptolemy.</p></article>
+            <article class="time-item"><span class="time-dot"></span><div class="time-date">c. 150 CE</div><h3>Ptolemy’s <em>Mathematical Syntaxis</em> — the <em>Almagest</em></h3><p>Ptolemy synthesized observation, trigonometry, star cataloguing, solar and lunar theory, eclipses, planetary longitude, latitude, and predictive tables. His planetary models made sophisticated use of deferents, epicycles, eccentrics, and the equant.</p></article>
+            <article class="time-item"><span class="time-dot"></span><div class="time-date">8th–10th centuries</div><h3>Translation and expansion in the Islamic world</h3><p>Greek astronomical works were translated into Arabic, studied, tested against observations, and incorporated into a vigorous mathematical-astronomical tradition.</p></article>
+            <article class="time-item"><span class="time-dot"></span><div class="time-date">13th–14th centuries</div><h3>Maragha-school critiques and alternatives</h3><p>Astronomers including Nasir al-Din al-Tusi and later Ibn al-Shatir developed geometrical devices that reproduced important Ptolemaic effects while avoiding some of the equant’s theoretical difficulties.</p></article>
+            <article class="time-item"><span class="time-dot"></span><div class="time-date">1543</div><h3>Copernicus publishes <em>De revolutionibus</em></h3><p>Copernicus relocates Earth from the cosmic center, yet still works extensively with uniform circular motion and epicyclic mathematical techniques inherited from the older tradition.</p></article>
+            <article class="time-item"><span class="time-dot"></span><div class="time-date">1609–1619</div><h3>Kepler replaces circles with ellipses</h3><p>Using Tycho Brahe’s observations, Kepler develops planetary laws in which planets sweep out unequal angles from the Sun along elliptical orbits—transforming the kinematic problem that Ptolemy had addressed with the equant.</p></article>
+            <article class="time-item" style="padding-bottom:0"><span class="time-dot"></span><div class="time-date">1687</div><h3>Newton supplies a dynamics</h3><p>Universal gravitation and the laws of motion provide a physical framework explaining why Keplerian planetary motions occur, completing a transformation from ancient geometrical astronomy to celestial mechanics.</p></article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="wrap">
+        <div class="section-head"><div class="eyebrow">Interpretation</div><h2>What Ptolemy got right—and what changed.</h2></div>
+        <div class="comparison">
+          <div class="panel compare-card">
+            <div class="eyebrow">The achievement</div>
+            <h3>A serious predictive science</h3>
+            <ul class="compare-list">
+              <li>Reduced irregular-looking celestial motions to quantitative geometry.</li>
+              <li>Used observations and mathematical parameters to build predictive tables.</li>
+              <li>Distinguished mean motion from apparent motion.</li>
+              <li>Recognized that a simple Earth-centered circle was inadequate.</li>
+              <li>Introduced the equant, an ingenious device for modeling nonuniform apparent speed.</li>
+            </ul>
+          </div>
+          <div class="panel compare-card">
+            <div class="eyebrow">The later transformation</div>
+            <h3>From kinematics to orbital physics</h3>
+            <ul class="compare-list">
+              <li>Heliocentrism makes the retrograde motion of outer planets a perspective effect of relative orbital motion.</li>
+              <li>Kepler’s ellipses reproduce varying orbital speed without an equant point.</li>
+              <li>Galilean observations undermine key assumptions of older cosmologies, including simple celestial perfection.</li>
+              <li>Newtonian gravitation explains planetary trajectories dynamically rather than only representing them geometrically.</li>
+              <li>Modern astronomy preserves geocentric coordinates when useful while rejecting a stationary Earth as the physical center of the planetary system.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="glossary" class="section">
+      <div class="wrap">
+        <div class="section-head"><div class="eyebrow">Terminology</div><h2>Speak the language of Ptolemaic astronomy.</h2></div>
+        <div class="glossary-grid">
+          <div class="panel term"><strong>Deferent</strong><p>The larger carrier circle along which the center of a planet’s epicycle moves.</p></div>
+          <div class="panel term"><strong>Epicycle</strong><p>A smaller circle carried around by the deferent; the planet moves around this smaller circle.</p></div>
+          <div class="panel term"><strong>Eccentric</strong><p>A circular path whose geometrical center is displaced from Earth.</p></div>
+          <div class="panel term"><strong>Equant</strong><p>A point displaced from the deferent center from which the epicycle center advances at uniform angular speed.</p></div>
+          <div class="panel term"><strong>Apogee / perigee</strong><p>In geocentric usage, positions of greatest and least distance from Earth in a model.</p></div>
+          <div class="panel term"><strong>Retrograde motion</strong><p>A temporary reversal in a planet’s apparent east-west motion against the fixed stars.</p></div>
+          <div class="panel term"><strong>Station</strong><p>The apparent moment when a planet’s longitudinal motion pauses before or after retrograde motion.</p></div>
+          <div class="panel term"><strong>Longitude</strong><p>Angular position measured along the ecliptic—the primary coordinate used here to visualize planetary progress.</p></div>
+          <div class="panel term"><strong>Line of apsides</strong><p>The diameter joining the model’s extreme-distance directions; Earth, deferent center, and equant align along it in the standard equant construction.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" style="padding-top:20px">
+      <div class="wrap">
+        <div class="panel sources">
+          <div class="eyebrow">Historical notes & sources</div>
+          <p class="muted">The app’s animations are pedagogical reconstructions based on the documented structure of Ptolemaic planetary theory. The source notes below are included so the visual story remains explicit about what is historical and what has been normalized for illustration.</p>
+          <ol>
+            <li><a href="https://www.encyclopedia.com/people/science-and-technology/astronomy-biographies/ptolemy" target="_blank" rel="noopener">Encyclopedia.com — “Ptolemy”</a>: detailed discussion of the outer-planet model, equant, inner planets, planetary latitudes, and the <em>Almagest</em>.</li>
+            <li><a href="https://plato.stanford.edu/archives/sum2022/entries/copernicus/" target="_blank" rel="noopener">Stanford Encyclopedia of Philosophy — “Nicolaus Copernicus”</a>: concise description of Ptolemaic epicycles, eccentricity, equant, and later Maragha-school developments.</li>
+            <li><a href="https://www.encyclopedia.com/science/encyclopedias-almanacs-transcripts-and-maps/ptolemaic-astronomy-islamic-planetary-theory-and-copernicuss-debt-maragha-school" target="_blank" rel="noopener">Encyclopedia.com — Ptolemaic Astronomy, Islamic Planetary Theory, and Copernicus’s Debt to the Maragha School</a>.</li>
+          </ol>
+          <p class="tiny muted">Normalization note: orbital radii, eccentric offsets, periods, star fields, and the sky-track plotting used in the live simulator are deliberately scaled to make geometrical relationships visible. They should not be used to calculate historical planetary positions.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap footer-grid"><div><strong>Ptolemaic Observatory</strong><br/><span>A self-contained historical astronomy learning app.</span></div><div>Built with HTML · CSS · SVG · vanilla JavaScript</div></div>
+  </footer>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  const NS = 'http://www.w3.org/2000/svg';
+  const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const TAU = Math.PI * 2;
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const svgEl = (tag, attrs = {}, text = '') => {
+    const el = document.createElementNS(NS, tag);
+    Object.entries(attrs).forEach(([k,v]) => el.setAttribute(k, String(v)));
+    if (text) el.textContent = text;
+    return el;
+  };
+  const byId = id => document.getElementById(id);
+  const normRad = a => { while (a < 0) a += TAU; while (a >= TAU) a -= TAU; return a; };
+  const angleDiff = (a,b) => { let d=a-b; while(d>Math.PI)d-=TAU; while(d<-Math.PI)d+=TAU; return d; };
+  const deg = r => ((r * 180 / Math.PI) % 360 + 360) % 360;
+
+  const zodiac = [
+    ['♈','Aries'],['♉','Taurus'],['♊','Gemini'],['♋','Cancer'],['♌','Leo'],['♍','Virgo'],
+    ['♎','Libra'],['♏','Scorpio'],['♐','Sagittarius'],['♑','Capricorn'],['♒','Aquarius'],['♓','Pisces']
+  ];
+
+  const planetData = {
+    mars: {
+      name:'Mars', glyph:'♂', type:'Outer planet', sphere:'5th above Earth', phenomenon:'Retrograde at opposition', device:'Epicycle + equant',
+      R:208, r:74, ecc:30, deferPeriod:1.88, epiPeriod:1.00, phase:3.22, color:'#c97956',
+      text:'For an outer planet such as Mars, the epicycle accounts for the planet’s relation to the Sun and produces its conspicuous retrograde loops. Ptolemy then used eccentricity and the equant to represent the varying speed of the epicycle center along the deferent.',
+      extra:'In the mature Ptolemaic longitude model, Earth, deferent center, and equant lie on the line of apsides. The equant sits opposite Earth with respect to the deferent center.'
+    },
+    jupiter: {
+      name:'Jupiter', glyph:'♃', type:'Outer planet', sphere:'6th above Earth', phenomenon:'Slower retrograde loop', device:'Epicycle + equant',
+      R:218, r:46, ecc:24, deferPeriod:11.86, epiPeriod:1.00, phase:2.58, color:'#d1aa72',
+      text:'Jupiter’s much slower progress through the zodiac is carried by a slower deferent motion, while its epicycle produces periodic stations and retrogradation. Ptolemy determined outer-planet parameters from carefully selected observations such as oppositions.',
+      extra:'In a geocentric model the outer planets require a geometrical relationship between their epicyclic anomaly and the mean Sun. The resulting construction reproduces the strong link between retrograde motion and solar opposition.'
+    },
+    saturn: {
+      name:'Saturn', glyph:'♄', type:'Outer planet', sphere:'7th above Earth', phenomenon:'Long-period retrograde', device:'Epicycle + equant',
+      R:225, r:37, ecc:27, deferPeriod:29.46, epiPeriod:1.00, phase:2.10, color:'#c8b88d',
+      text:'Saturn was the slowest of the five classical planets, taking roughly three decades to circuit the zodiac. Its annual retrograde episode fits naturally into the outer-planet epicycle construction.',
+      extra:'The slowness of Saturn’s deferent motion made long observational baselines especially important for determining its mean motion and apsidal geometry.'
+    },
+    venus: {
+      name:'Venus', glyph:'♀', type:'Inferior planet', sphere:'3rd above Earth', phenomenon:'Never far from the Sun', device:'Sun-linked epicycle',
+      R:172, r:82, ecc:20, deferPeriod:1.00, epiPeriod:1.60, phase:.74, color:'#d9c28b',
+      text:'Venus never appears far from the Sun. Ptolemaic geometry captures that constraint by tying the center of the epicycle to the mean Sun. Maximum elongations reveal the scale of the epicycle particularly clearly.',
+      extra:'Ptolemy’s model for Venus shares the basic equant architecture of the planetary theory, but the relation between the epicycle center and the Sun differs from the outer-planet case.'
+    },
+    mercury: {
+      name:'Mercury', glyph:'☿', type:'Inferior planet', sphere:'2nd above Earth', phenomenon:'Small, irregular elongations', device:'Modified inner-planet model',
+      R:157, r:65, ecc:32, deferPeriod:1.00, epiPeriod:.72, phase:1.55, color:'#aeb6bf',
+      text:'Mercury was especially difficult. Its observed elongations vary in a way that required Ptolemy to add further geometrical machinery beyond the simpler Venus model.',
+      extra:'The historical Mercury model includes an additional mechanism that makes the effective eccentricity vary. This app preserves Mercury’s pedagogical inner-planet behavior but does not reproduce the full special Mercury construction.'
+    }
+  };
+
+  // ---------- Hero cosmos ----------
+  const hero = byId('heroCosmos');
+  const heroBodies = [];
+  if (hero) {
+    const defs = svgEl('defs');
+    const grad = svgEl('radialGradient',{id:'heroEarth',cx:'35%',cy:'30%',r:'70%'});
+    grad.append(svgEl('stop',{offset:'0%', 'stop-color':'#e7edf3'}),svgEl('stop',{offset:'100%','stop-color':'#546578'}));
+    defs.appendChild(grad); hero.appendChild(defs);
+    hero.appendChild(svgEl('rect',{x:0,y:0,width:720,height:720,fill:'#070b12'}));
+    const stars = svgEl('g',{opacity:.68});
+    for(let i=0;i<120;i++){
+      const a=i*2.399963; const rr=72+((i*71)%280); const x=360+Math.cos(a)*rr; const y=360+Math.sin(a)*rr;
+      stars.appendChild(svgEl('circle',{cx:x,cy:y,r:i%17===0?1.7:(i%5===0?1:.65),fill:i%13===0?'#e6d6a6':'#d8e1eb'}));
+    }
+    hero.appendChild(stars);
+    const rings = [60,91,122,154,188,225,265,308];
+    const names = ['Moon','Mercury','Venus','Sun','Mars','Jupiter','Saturn','Fixed stars'];
+    const speeds = [13.3,4.1,2.5,1.8,1.25,.82,.55,.08];
+    const colors = ['#cfd6dd','#afb7c0','#d9c28b','#e4c163','#c97956','#d1aa72','#c8b88d','#8da1b8'];
+    rings.forEach((r,i)=>{
+      hero.appendChild(svgEl('circle',{cx:360,cy:360,r,fill:'none',stroke:i===7?'#70869c':'#536273','stroke-width':i===7?1.6:1,opacity:i===7?.7:.45,'stroke-dasharray':i===7?'2 6':'none'}));
+      if(i<7){
+        const body=svgEl('circle',{cx:360+r,cy:360,r:i===3?7:(i===0?5:4.7),fill:colors[i],stroke:'#f4ead2','stroke-width':.8});
+        hero.appendChild(body); heroBodies.push({body,r,speed:speeds[i],phase:i*.78});
+      }
+      const labelAngle=-.95;
+      const tx=360+Math.cos(labelAngle)*r, ty=360+Math.sin(labelAngle)*r;
+      const t=svgEl('text',{x:tx,y:ty-5,fill:'#8292a5','font-size':i===7?11:10,'text-anchor':'middle'},names[i].toUpperCase());
+      hero.appendChild(t);
+    });
+    hero.appendChild(svgEl('circle',{cx:360,cy:360,r:18,fill:'url(#heroEarth)',stroke:'#eef3f7','stroke-width':1.2}));
+    hero.appendChild(svgEl('text',{x:360,y:392,fill:'#e8eef4','font-size':11,'text-anchor':'middle','font-weight':700},'EARTH'));
+  }
+
+  // ---------- Main model ----------
+  const modelSvg = byId('modelSvg');
+  let currentPlanet = 'mars';
+  let currentMode = 'full';
+  let playing = !reducedMotion;
+  let modelTime = 0;
+  let lastTs = performance.now();
+  let lastRender = 0;
+  const earth = {x:340,y:322};
+
+  function epicycleCenter(p,t,mode=currentMode){
+    const angle = t * TAU / p.deferPeriod - Math.PI/2;
+    if(mode !== 'full') return {x:earth.x + p.R*Math.cos(angle), y:earth.y + p.R*Math.sin(angle), angle};
+    const D={x:380,y:322};
+    const E={x:D.x+p.ecc,y:D.y};
+    const ux=Math.cos(angle), uy=Math.sin(angle);
+    const vx=E.x-D.x, vy=E.y-D.y;
+    const dot=vx*ux+vy*uy;
+    const disc=Math.max(0,dot*dot+p.R*p.R-(vx*vx+vy*vy));
+    const dist=-dot+Math.sqrt(disc);
+    return {x:E.x+dist*ux,y:E.y+dist*uy,angle,D,E};
+  }
+
+  function planetPosition(p,t,mode=currentMode){
+    const c=epicycleCenter(p,t,mode);
+    if(mode==='deferent') return {x:c.x,y:c.y,c};
+    const a=t*TAU/p.epiPeriod+p.phase;
+    return {x:c.x+p.r*Math.cos(a),y:c.y+p.r*Math.sin(a),c};
+  }
+  function apparentAngle(p,t,mode=currentMode){ const q=planetPosition(p,t,mode); return Math.atan2(-(q.y-earth.y),q.x-earth.x); }
+  function apparentVelocity(p,t,mode=currentMode){ return angleDiff(apparentAngle(p,t+.001,mode),apparentAngle(p,t-.001,mode)); }
+
+  function drawModel(){
+    if(!modelSvg) return;
+    const p=planetData[currentPlanet];
+    modelSvg.innerHTML='';
+    modelSvg.appendChild(svgEl('rect',{width:760,height:640,fill:'#080d15'}));
+
+    // Star field and zodiac rim
+    const stars=svgEl('g',{opacity:.55});
+    for(let i=0;i<92;i++){
+      const a=i*2.399963; const rr=100+((i*53)%205); const x=380+Math.cos(a)*rr; const y=320+Math.sin(a)*rr;
+      stars.appendChild(svgEl('circle',{cx:x,cy:y,r:i%11===0?1.35:.65,fill:'#d6e0ea'}));
+    }
+    modelSvg.appendChild(stars);
+    modelSvg.appendChild(svgEl('circle',{cx:380,cy:320,r:293,fill:'none',stroke:'#516172','stroke-width':1,opacity:.48}));
+    zodiac.forEach((z,i)=>{
+      const a=i/12*TAU-Math.PI/2; modelSvg.appendChild(svgEl('text',{x:380+Math.cos(a)*292,y:325+Math.sin(a)*292,fill:'#8292a5','font-size':15,'text-anchor':'middle'},z[0]));
+    });
+
+    const q=planetPosition(p,modelTime); const c=q.c;
+    const full=currentMode==='full', epi=currentMode!=='deferent';
+    const D=full?c.D:{x:earth.x,y:earth.y}; const E=full?c.E:null;
+
+    // Trail
+    if(byId('trailToggle').checked){
+      let d=''; const span=Math.min(Math.max(.9,p.deferPeriod*.38),2.1);
+      for(let i=0;i<=115;i++){
+        const tt=modelTime-span+span*i/115; const pt=planetPosition(p,tt);
+        d+=(i?'L':'M')+pt.x.toFixed(2)+' '+pt.y.toFixed(2)+' ';
+      }
+      modelSvg.appendChild(svgEl('path',{d,fill:'none',stroke:p.color,'stroke-width':2,opacity:.28}));
+    }
+
+    // Geometry
+    modelSvg.appendChild(svgEl('circle',{cx:D.x,cy:D.y,r:p.R,fill:'none',stroke:'#8190a0','stroke-width':1.6,'stroke-dasharray':'6 7',opacity:.76}));
+    if(full){
+      modelSvg.appendChild(svgEl('line',{x1:earth.x,y1:earth.y,x2:E.x,y2:E.y,stroke:'#647487','stroke-width':1,'stroke-dasharray':'4 5'}));
+      modelSvg.appendChild(svgEl('circle',{cx:D.x,cy:D.y,r:4.5,fill:'#a9b5c0'}));
+      modelSvg.appendChild(svgEl('circle',{cx:E.x,cy:E.y,r:7,fill:'none',stroke:'#d8b56a','stroke-width':2}));
+      modelSvg.appendChild(svgEl('circle',{cx:E.x,cy:E.y,r:2.2,fill:'#d8b56a'}));
+    }
+    if(epi){
+      modelSvg.appendChild(svgEl('circle',{cx:c.x,cy:c.y,r:p.r,fill:'none',stroke:'#9585bd','stroke-width':2,opacity:.9}));
+      modelSvg.appendChild(svgEl('circle',{cx:c.x,cy:c.y,r:4,fill:'#b7a8db'}));
+    }
+    if(byId('sightToggle').checked) modelSvg.appendChild(svgEl('line',{x1:earth.x,y1:earth.y,x2:q.x,y2:q.y,stroke:'#c3ced8','stroke-width':1,'stroke-dasharray':'3 5',opacity:.55}));
+
+    // Earth
+    const eg=svgEl('radialGradient',{id:'mEarth',cx:'35%',cy:'30%',r:'75%'}); eg.append(svgEl('stop',{offset:'0%','stop-color':'#e9eff5'}),svgEl('stop',{offset:'100%','stop-color':'#536577'}));
+    const defs=svgEl('defs'); defs.appendChild(eg); modelSvg.appendChild(defs);
+    modelSvg.appendChild(svgEl('circle',{cx:earth.x,cy:earth.y,r:15,fill:'url(#mEarth)',stroke:'#eef3f7','stroke-width':1.2}));
+    modelSvg.appendChild(svgEl('circle',{cx:q.x,cy:q.y,r:8,fill:p.color,stroke:'#f6e8d9','stroke-width':1.4}));
+
+    if(byId('labelsToggle').checked){
+      modelSvg.appendChild(svgEl('text',{x:earth.x,y:earth.y+35,fill:'#e7edf4','font-size':13,'text-anchor':'middle','font-weight':700},'EARTH'));
+      modelSvg.appendChild(svgEl('text',{x:q.x+12,y:q.y-12,fill:'#f0d9cd','font-size':13,'font-weight':700},p.name.toUpperCase()));
+      modelSvg.appendChild(svgEl('text',{x:D.x,y:D.y-p.R-11,fill:'#aeb9c5','font-size':12,'text-anchor':'middle'},'DEFERENT'));
+      if(epi) modelSvg.appendChild(svgEl('text',{x:c.x,y:c.y-p.r-10,fill:'#bdb2dd','font-size':11,'text-anchor':'middle'},'EPICYCLE'));
+      if(full){
+        modelSvg.appendChild(svgEl('text',{x:D.x-10,y:D.y-13,fill:'#aeb9c5','font-size':11,'text-anchor':'end'},'CENTER'));
+        modelSvg.appendChild(svgEl('text',{x:E.x+10,y:E.y-13,fill:'#e0bd72','font-size':11},'EQUANT'));
+      }
+    }
+
+    const lon=deg(apparentAngle(p,modelTime)); const retro=apparentVelocity(p,modelTime)<0;
+    byId('longitudeReadout').textContent=lon.toFixed(1)+'°';
+    byId('motionReadout').textContent=retro?'Retrograde':'Direct';
+    byId('motionBadge').textContent=retro?'Retrograde motion ←':'Direct motion →';
+    byId('motionBadge').classList.toggle('retro',retro);
+    const zi=Math.floor(((lon+15)%360)/30)%12; byId('zodiacReadout').textContent=zodiac[zi][0]+' '+zodiac[zi][1];
+    byId('timeReadout').textContent=modelTime.toFixed(2)+' years';
+    byId('timeSlider').value=Math.round(((modelTime%p.deferPeriod+p.deferPeriod)%p.deferPeriod)/p.deferPeriod*1000);
+    byId('stageTitle').textContent=p.name+' — '+(currentMode==='full'?'full teaching model':currentMode==='epicycle'?'deferent + epicycle':'deferent only');
+  }
+
+  function setMode(mode){
+    currentMode=mode;
+    document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===mode));
+    drawModel(); drawRetro();
+  }
+  function setPlanet(key){
+    currentPlanet=key; modelTime=0; byId('planetSelect').value=key; drawModel(); drawRetro(); selectPlanetCard(key);
+  }
+  function findRetrograde(){
+    const p=planetData[currentPlanet];
+    for(let i=0;i<3000;i++){
+      const tt=i/3000*p.deferPeriod;
+      if(apparentVelocity(p,tt,'full')<0){ modelTime=tt; currentMode='full'; document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode==='full')); drawModel(); drawRetro(); toast('Moved to a retrograde interval.'); return; }
+    }
+    toast('No retrograde interval found in this teaching cycle.');
+  }
+
+  byId('planetSelect').addEventListener('change', e=>setPlanet(e.target.value));
+  document.querySelectorAll('[data-mode]').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));
+  ['labelsToggle','trailToggle','sightToggle'].forEach(id=>byId(id).addEventListener('change',drawModel));
+  byId('timeSlider').addEventListener('input',e=>{ const p=planetData[currentPlanet]; modelTime=(+e.target.value/1000)*p.deferPeriod; drawModel(); drawRetro(); });
+  byId('playButton').addEventListener('click',()=>{ playing=!playing; byId('playButton').textContent=playing?'Pause':'Play'; byId('playButton').classList.toggle('active',playing); lastTs=performance.now(); });
+  byId('resetButton').addEventListener('click',()=>{modelTime=0;drawModel();drawRetro();});
+  byId('stepRetroButton').addEventListener('click',findRetrograde);
+
+  // ---------- Guided lesson ----------
+  const lessons = [
+    {title:'Earth appears stationary',text:'Begin from the observer’s experience. The ground does not seem to move, while the Sun, Moon, stars, and planets rise and set around us. An Earth-centered coordinate system is therefore an entirely natural starting point for naked-eye astronomy.',call:'Geocentrism was not born from stupidity. It was a coordinate framework grounded in ordinary observation and embedded in the physical philosophy available to ancient astronomers.',mode:'deferent'},
+    {title:'The deferent supplies the large-scale circuit',text:'A deferent is a large circular carrier path. In the simplest version, a planet could be placed directly on it. That generates smooth circulation around Earth—but by itself cannot reproduce the stations, loops, and varying speeds seen in the planets.',call:'The word “deferent” comes from the idea that this larger circle carries or bears the smaller planetary motion.',mode:'deferent'},
+    {title:'The epicycle creates compound circular motion',text:'Now place the planet on a smaller circle whose center travels on the deferent. Two uniform circular motions can combine into a looping path. From Earth, that loop can produce a temporary reversal in apparent longitude.',call:'Epicycles were not random extra circles. They were a mathematically controlled way of representing periodic deviations from a mean motion.',mode:'epicycle'},
+    {title:'Earth is not at the deferent’s geometrical center',text:'The next refinement is eccentricity. Shift the deferent center away from Earth. The planet’s apparent speed and distance now change over the cycle even if motion remains geometrically regular around another point.',call:'A mature Ptolemaic model is therefore already far more subtle than “everything moves in simple circles centered exactly on Earth.”',mode:'full'},
+    {title:'The equant improves the variable speed',text:'Ptolemy lets the epicycle center move with uniform angular speed as seen from a point called the equant. The equant lies on the line through Earth and the deferent center, on the opposite side of that center from Earth.',call:'The equant was mathematically powerful but philosophically troublesome because uniform motion was no longer uniform about the actual center of the circular deferent.',mode:'full'},
+    {title:'The observer sees a retrograde interval',text:'The final result is judged from Earth. Track the planet’s longitude against the fixed stars. When that longitude begins decreasing instead of increasing, the planet is in retrograde motion. It later reaches a second station and resumes direct motion.',call:'Retrograde is an apparent reversal in sky position. The planet does not need to reverse the direction of its local circular motion.',mode:'full',retro:true}
+  ];
+  document.querySelectorAll('[data-lesson]').forEach(btn=>btn.addEventListener('click',()=>{
+    const i=+btn.dataset.lesson, L=lessons[i];
+    document.querySelectorAll('[data-lesson]').forEach(b=>b.classList.toggle('active',b===btn));
+    byId('lessonTitle').textContent=L.title; byId('lessonText').textContent=L.text; byId('lessonCallout').innerHTML='<strong>Historical insight:</strong> '+L.call;
+    setMode(L.mode); if(L.retro) findRetrograde();
+  }));
+
+  // ---------- Retrograde sky and chart ----------
+  function drawRetro(){
+    const p=planetData[currentPlanet];
+    const sky=byId('skyStrip'), chart=byId('longitudeChart');
+    if(!sky||!chart)return;
+    sky.innerHTML=''; chart.innerHTML='';
+    sky.appendChild(svgEl('rect',{width:760,height:330,fill:'#080d15'}));
+    chart.appendChild(svgEl('rect',{width:620,height:330,fill:'#080d15'}));
+
+    // sky stars
+    for(let i=0;i<70;i++){
+      const x=22+((i*97)%716), y=28+((i*61)%250); const r=i%13===0?1.6:.75;
+      sky.appendChild(svgEl('circle',{cx:x,cy:y,r,fill:i%11===0?'#e9d9a8':'#9ba9b8',opacity:.8}));
+    }
+    for(let i=0;i<12;i++) sky.appendChild(svgEl('text',{x:31+i*61,y:309,fill:'#6f7e90','font-size':14,'text-anchor':'middle'},zodiac[i][0]));
+
+    const span=Math.min(Math.max(p.deferPeriod*.9,1.1),2.4), start=modelTime-span*.65;
+    const pts=[];
+    for(let i=0;i<=160;i++){
+      const tt=start+span*i/160;
+      const a=apparentAngle(p,tt,'full');
+      // unwrap relative to first sample
+      if(i===0) pts.push({t:tt,a}); else pts.push({t:tt,a:pts[i-1].a+angleDiff(a,normRad(pts[i-1].a))});
+    }
+    const amin=Math.min(...pts.map(d=>d.a)), amax=Math.max(...pts.map(d=>d.a));
+    const axRange=Math.max(.25,amax-amin);
+    const pathPts=pts.map((d,i)=>{
+      const x=28+(d.a-amin)/axRange*704;
+      const y=156+Math.sin(i/160*Math.PI*3.2)*44 + Math.sin(i*.18)*7;
+      return {x,y,t:d.t,a:d.a};
+    });
+    let d=''; pathPts.forEach((pt,i)=>d+=(i?'L':'M')+pt.x.toFixed(1)+' '+pt.y.toFixed(1)+' ');
+    sky.appendChild(svgEl('path',{d,fill:'none',stroke:p.color,'stroke-width':3,opacity:.72}));
+    pathPts.filter((_,i)=>i%18===0).forEach(pt=>sky.appendChild(svgEl('circle',{cx:pt.x,cy:pt.y,r:3.2,fill:p.color,opacity:.78})));
+    // current position by closest t
+    const ci=pathPts.reduce((best,pt,i)=>Math.abs(pt.t-modelTime)<Math.abs(pathPts[best].t-modelTime)?i:best,0);
+    const cp=pathPts[ci]; sky.appendChild(svgEl('circle',{cx:cp.x,cy:cp.y,r:7,fill:'#f1d795',stroke:'#fff0c2','stroke-width':1.2}));
+    sky.appendChild(svgEl('text',{x:26,y:28,fill:'#aab7c5','font-size':12},'WEST ←  apparent track against fixed stars  → EAST'));
+
+    // Chart axes
+    const m={l:48,r:16,t:22,b:38}, W=620,H=330;
+    chart.appendChild(svgEl('line',{x1:m.l,y1:H-m.b,x2:W-m.r,y2:H-m.b,stroke:'#5a697a','stroke-width':1}));
+    chart.appendChild(svgEl('line',{x1:m.l,y1:m.t,x2:m.l,y2:H-m.b,stroke:'#5a697a','stroke-width':1}));
+    chart.appendChild(svgEl('text',{x:(W+m.l-m.r)/2,y:318,fill:'#8190a2','font-size':11,'text-anchor':'middle'},'MODEL TIME'));
+    chart.appendChild(svgEl('text',{x:14,y:160,fill:'#8190a2','font-size':11,'text-anchor':'middle',transform:'rotate(-90 14 160)'},'APPARENT LONGITUDE'));
+    const ymin=amin,ymax=amax;
+    let chartD='';
+    pts.forEach((pt,i)=>{
+      const x=m.l+i/160*(W-m.l-m.r), y=H-m.b-(pt.a-ymin)/Math.max(.001,ymax-ymin)*(H-m.t-m.b);
+      chartD+=(i?'L':'M')+x.toFixed(1)+' '+y.toFixed(1)+' ';
+    });
+    chart.appendChild(svgEl('path',{d:chartD,fill:'none',stroke:'#d8b56a','stroke-width':2.5}));
+    // Retrograde shading based on slope
+    let segments=[]; let segStart=null;
+    for(let i=1;i<pts.length;i++){
+      const retro=pts[i].a<pts[i-1].a;
+      if(retro&&segStart===null) segStart=i-1;
+      if(!retro&&segStart!==null){segments.push([segStart,i]);segStart=null;}
+    }
+    if(segStart!==null)segments.push([segStart,pts.length-1]);
+    segments.forEach(([a,b])=>{
+      const x1=m.l+a/160*(W-m.l-m.r), x2=m.l+b/160*(W-m.l-m.r);
+      chart.insertBefore(svgEl('rect',{x:x1,y:m.t,width:Math.max(2,x2-x1),height:H-m.t-m.b,fill:'#c97956',opacity:.09}),chart.children[1]);
+      chart.appendChild(svgEl('text',{x:(x1+x2)/2,y:38,fill:'#e8a793','font-size':11,'text-anchor':'middle'},'RETROGRADE'));
+    });
+    const currentX=m.l+clamp((modelTime-start)/span,0,1)*(W-m.l-m.r);
+    chart.appendChild(svgEl('line',{x1:currentX,y1:m.t,x2:currentX,y2:H-m.b,stroke:'#e8edf2','stroke-width':1,'stroke-dasharray':'3 5',opacity:.65}));
+  }
+
+  // ---------- Sphere diagram ----------
+  const spheres = [
+    {name:'Earth',eyebrow:'Center',index:'0 · Central body',text:'The unmoving reference point of the geocentric cosmos. In Aristotelian natural philosophy, heavy terrestrial matter naturally seeks the center of the universe.',color:'#dbe4ec'},
+    {name:'Moon',eyebrow:'First celestial sphere',index:'1 · Moon',text:'The nearest celestial wanderer. The Moon’s changing speed, eclipses, and latitude required a sophisticated lunar theory distinct from the five planetary models.',color:'#cbd2d9'},
+    {name:'Mercury',eyebrow:'Inferior planet',index:'2 · Mercury',text:'Mercury remains close to the Sun in the sky and required Ptolemy’s most specialized planetary geometry, including an additional mechanism for varying eccentricity.',color:'#afb7c0'},
+    {name:'Venus',eyebrow:'Inferior planet',index:'3 · Venus',text:'Venus also remains near the Sun. Its greatest elongations provide direct clues to the dimensions of the epicycle in a geocentric construction.',color:'#d9c28b'},
+    {name:'Sun',eyebrow:'Luminary',index:'4 · Sun',text:'The mean Sun provides an essential timing reference for planetary anomaly. Ptolemy’s solar model was inherited substantially from Hipparchus and used an eccentric construction.',color:'#e4c163'},
+    {name:'Mars',eyebrow:'Outer planet',index:'5 · Mars',text:'Mars presents dramatic retrograde motion and substantial variation in apparent speed, making it a particularly revealing test of any planetary theory.',color:'#c97956'},
+    {name:'Jupiter',eyebrow:'Outer planet',index:'6 · Jupiter',text:'Jupiter moves more slowly through the zodiac but shows the same characteristic stations and retrograde motion associated with opposition to the Sun.',color:'#d1aa72'},
+    {name:'Saturn',eyebrow:'Outer planet',index:'7 · Saturn',text:'Saturn is the slowest classical planet. Its immense period made precise long-term records especially valuable.',color:'#c8b88d'},
+    {name:'Fixed stars',eyebrow:'Stellar sphere',index:'8 · Fixed stars',text:'The background stars preserve their patterns while the seven classical wanderers move among them. Their sphere provides the reference grid against which planetary longitude is measured.',color:'#8da1b8'}
+  ];
+  const sphereSvg=byId('sphereSvg');
+  function selectSphere(i){
+    const s=spheres[i]; byId('sphereEyebrow').textContent=s.eyebrow; byId('sphereName').textContent=s.name; byId('sphereText').textContent=s.text; byId('sphereIndex').textContent=s.index;
+    if(sphereSvg) sphereSvg.querySelectorAll('[data-sphere]').forEach(el=>el.setAttribute('opacity',+el.dataset.sphere===i?'1':'.44'));
+  }
+  if(sphereSvg){
+    sphereSvg.appendChild(svgEl('rect',{width:760,height:620,fill:'#080d15',rx:18}));
+    const cx=330,cy=310;
+    for(let i=8;i>=1;i--){
+      const r=50+i*29;
+      const circle=svgEl('circle',{cx,cy,r,fill:'none',stroke:spheres[i].color,'stroke-width':i===8?2:1.4,opacity:i===8?.72:.52,'data-sphere':i,tabindex:0,role:'button','aria-label':spheres[i].name});
+      circle.style.cursor='pointer'; circle.addEventListener('click',()=>selectSphere(i)); circle.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectSphere(i);}}); sphereSvg.appendChild(circle);
+      const a=-.66; const tx=cx+Math.cos(a)*r,ty=cy+Math.sin(a)*r;
+      const label=svgEl('text',{x:tx+6,y:ty-4,fill:spheres[i].color,'font-size':11,'data-sphere':i},spheres[i].name.toUpperCase());
+      label.style.pointerEvents='none'; sphereSvg.appendChild(label);
+    }
+    const earthCircle=svgEl('circle',{cx,cy,r:27,fill:'#526578',stroke:'#edf2f6','stroke-width':1.4,'data-sphere':0,tabindex:0,role:'button','aria-label':'Earth'}); earthCircle.style.cursor='pointer'; earthCircle.addEventListener('click',()=>selectSphere(0)); earthCircle.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();selectSphere(0);}}); sphereSvg.appendChild(earthCircle);
+    sphereSvg.appendChild(svgEl('text',{x:cx,y:cy+5,fill:'#fff','font-size':11,'font-weight':800,'text-anchor':'middle'},'EARTH'));
+    sphereSvg.appendChild(svgEl('text',{x:610,y:580,fill:'#647487','font-size':11,'text-anchor':'middle'},'SCHEMATIC · NOT TO SCALE'));
+  }
+
+  // ---------- Planet cards ----------
+  const planetCards=byId('planetCards');
+  function selectPlanetCard(key){
+    if(!planetCards)return; const p=planetData[key];
+    planetCards.querySelectorAll('.planet-card').forEach(c=>c.classList.toggle('active',c.dataset.planet===key));
+    byId('detailType').textContent=p.type; byId('detailName').textContent=p.name; byId('detailSphere').textContent=p.sphere; byId('detailPhenomenon').textContent=p.phenomenon; byId('detailDevice').textContent=p.device; byId('detailText').textContent=p.text; byId('detailExtra').textContent=p.extra;
+  }
+  if(planetCards){
+    Object.entries(planetData).forEach(([key,p])=>{
+      const b=document.createElement('button'); b.type='button'; b.className='planet-card'+(key==='mars'?' active':''); b.dataset.planet=key;
+      b.innerHTML='<div class="planet-glyph">'+p.glyph+'</div><strong>'+p.name+'</strong><span>'+p.type+'</span>';
+      b.addEventListener('click',()=>{selectPlanetCard(key);setPlanet(key);}); planetCards.appendChild(b);
+    });
+  }
+
+  // ---------- Animation ----------
+  function animate(ts){
+    const dt=Math.min(.05,(ts-lastTs)/1000); lastTs=ts;
+    if(playing){ modelTime += dt*.24; if(ts-lastRender>25){drawModel();drawRetro();lastRender=ts;} }
+    if(heroBodies.length){
+      const ht=ts/1000;
+      heroBodies.forEach((o,i)=>{
+        const a=ht*o.speed*.23+o.phase-Math.PI/2;
+        o.body.setAttribute('cx',360+Math.cos(a)*o.r); o.body.setAttribute('cy',360+Math.sin(a)*o.r);
+      });
+    }
+    requestAnimationFrame(animate);
+  }
+
+  function toast(msg){
+    const t=byId('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast.timer); toast.timer=setTimeout(()=>t.classList.remove('show'),1800);
+  }
+
+  drawModel(); drawRetro(); selectSphere(0); selectPlanetCard('mars');
+  byId('playButton').textContent=playing?'Pause':'Play'; byId('playButton').classList.toggle('active',playing);
+  requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>
